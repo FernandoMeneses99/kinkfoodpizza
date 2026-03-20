@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { ShoppingCart, Plus, Minus } from "lucide-react";
 import Navbar from "@/components/Navbar";
 import { useAuth } from "@/components/providers/AuthProvider";
@@ -26,23 +27,43 @@ interface Categoria {
   num_productos: number;
 }
 
+interface CanastaItem {
+  producto_id: number;
+  cantidad: number;
+}
+
 export default function MenuPage() {
   const [productos, setProductos] = useState<Producto[]>([]);
   const [categorias, setCategorias] = useState<Categoria[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedCategoria, setSelectedCategoria] = useState<number | null>(null);
-  const [canasta, setCanasta] = useState<{ [key: number]: number }>({});
-  const [showCanasta, setShowCanasta] = useState(false);
+  const [canasta, setCanasta] = useState<CanastaItem[]>([]);
   const [addingToCart, setAddingToCart] = useState<number | null>(null);
   const { user } = useAuth();
+  const router = useRouter();
+
+  const getImageUrl = (imagePath: string | null) => {
+    if (!imagePath) return null;
+    if (imagePath.startsWith('http://') || imagePath.startsWith('https://')) {
+      return imagePath;
+    }
+    if (imagePath.startsWith('/')) {
+      return imagePath;
+    }
+    return `/${imagePath}`;
+  };
 
   useEffect(() => {
     fetchData();
-    const savedCanasta = localStorage.getItem("canasta");
-    if (savedCanasta) {
-      setCanasta(JSON.parse(savedCanasta));
-    }
   }, []);
+
+  useEffect(() => {
+    if (user && user.rol === 'cliente') {
+      fetchCanasta();
+    } else {
+      setCanasta([]);
+    }
+  }, [user]);
 
   const fetchData = async () => {
     try {
@@ -61,34 +82,81 @@ export default function MenuPage() {
     }
   };
 
-  const addToCanasta = (productoId: number) => {
+  const fetchCanasta = async () => {
+    try {
+      const token = localStorage.getItem("accessToken");
+      const res = await fetch("/api/canasta", {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const data = await res.json();
+      setCanasta(data.items || []);
+    } catch (error) {
+      console.error("Error fetching canasta:", error);
+    }
+  };
+
+  const addToCanasta = async (productoId: number) => {
+    if (!user) {
+      router.push("/cliente/login?redirect=/cliente/menu");
+      return;
+    }
+    
     setAddingToCart(productoId);
-    setCanasta((prev) => {
-      const newCanasta = { ...prev, [productoId]: (prev[productoId] || 0) + 1 };
-      localStorage.setItem("canasta", JSON.stringify(newCanasta));
-      return newCanasta;
-    });
-    setTimeout(() => setAddingToCart(null), 500);
+    try {
+      const token = localStorage.getItem("accessToken");
+      const existingItem = canasta.find(item => item.producto_id === productoId);
+      const cantidad = existingItem ? existingItem.cantidad + 1 : 1;
+      
+      await fetch("/api/canasta", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ producto_id: productoId, cantidad }),
+      });
+      
+      fetchCanasta();
+    } catch (error) {
+      console.error("Error adding to canasta:", error);
+    } finally {
+      setTimeout(() => setAddingToCart(null), 500);
+    }
   };
 
-  const removeFromCanasta = (productoId: number) => {
-    setCanasta((prev) => {
-      const newCanasta = { ...prev };
-      if (newCanasta[productoId] > 1) {
-        newCanasta[productoId]--;
-      } else {
-        delete newCanasta[productoId];
-      }
-      localStorage.setItem("canasta", JSON.stringify(newCanasta));
-      return newCanasta;
-    });
+  const removeFromCanasta = async (productoId: number) => {
+    const item = canasta.find(i => i.producto_id === productoId);
+    if (!item) return;
+    
+    try {
+      const token = localStorage.getItem("accessToken");
+      const newCantidad = item.cantidad - 1;
+      
+      await fetch("/api/canasta", {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ producto_id: productoId, cantidad: newCantidad }),
+      });
+      
+      fetchCanasta();
+    } catch (error) {
+      console.error("Error updating canasta:", error);
+    }
   };
 
-  const getCanastaCount = () => Object.values(canasta).reduce((a, b) => a + b, 0);
+  const getCanastaCount = () => canasta.reduce((sum, item) => sum + item.cantidad, 0);
 
   const filteredProductos = selectedCategoria
     ? productos.filter((p) => p.categoria_id === selectedCategoria)
     : productos;
+
+  const getCanastaCantidad = (productoId: number) => {
+    const item = canasta.find(i => i.producto_id === productoId);
+    return item?.cantidad || 0;
+  };
 
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat("es-CO", {
@@ -96,6 +164,15 @@ export default function MenuPage() {
       currency: "COP",
       minimumFractionDigits: 0,
     }).format(value);
+  };
+
+  const getCanastaTotal = () => {
+    return canasta.reduce((sum, item) => {
+      const producto = productos.find(p => p.id === item.producto_id);
+      if (!producto) return sum;
+      const precio = producto.precio_oferta || producto.precio;
+      return sum + precio * item.cantidad;
+    }, 0);
   };
 
   if (loading) {
@@ -160,16 +237,19 @@ export default function MenuPage() {
                   !producto.disponible ? "opacity-60" : ""
                 }`}
               >
-                <div className="relative h-48 bg-gradient-to-br from-red-50 to-orange-100 flex items-center justify-center">
-                  {producto.imagen ? (
+                <div className="relative h-48 bg-gradient-to-br from-red-50 to-orange-100 flex items-center justify-center overflow-hidden">
+                  {getImageUrl(producto.imagen) ? (
                     <img
-                      src={producto.imagen}
+                      src={getImageUrl(producto.imagen)!}
                       alt={producto.nombre}
                       className="w-full h-full object-cover"
+                      onError={(e) => {
+                        (e.target as HTMLImageElement).style.display = 'none';
+                        (e.target as HTMLImageElement).nextElementSibling?.classList.remove('hidden');
+                      }}
                     />
-                  ) : (
-                    <span className="text-6xl">🍕</span>
-                  )}
+                  ) : null}
+                  <span className={`text-6xl ${getImageUrl(producto.imagen) ? 'hidden' : ''}`}>🍕</span>
                   {producto.destacado && (
                     <span className="absolute top-3 left-3 px-3 py-1 bg-yellow-400 text-gray-900 text-xs font-bold rounded-full">
                       Destacado
@@ -207,43 +287,42 @@ export default function MenuPage() {
                       )}
                     </div>
 
-                    <button
-                      onClick={() => producto.disponible && addToCanasta(producto.id)}
-                      disabled={!producto.disponible || addingToCart === producto.id}
-                      className={`w-10 h-10 rounded-full flex items-center justify-center transition-all ${
-                        !producto.disponible
-                          ? "bg-gray-200 text-gray-400"
-                          : addingToCart === producto.id
-                          ? "bg-green-500 text-white scale-110"
-                          : "bg-[#dc2626] text-white hover:bg-[#991b1b]"
-                      }`}
-                    >
-                      {canasta[producto.id] ? (
-                        <div className="flex items-center gap-2">
+                    {producto.disponible ? (
+                      getCanastaCantidad(producto.id) > 0 ? (
+                        <div className="flex items-center gap-1 bg-[#dc2626] text-white rounded-full px-2 py-1">
                           <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              removeFromCanasta(producto.id);
-                            }}
-                            className="p-1"
+                            onClick={() => removeFromCanasta(producto.id)}
+                            className="w-6 h-6 flex items-center justify-center hover:bg-white/20 rounded-full transition-colors"
                           >
                             <Minus className="w-4 h-4" />
                           </button>
-                          <span className="font-bold">{canasta[producto.id]}</span>
+                          <span className="font-bold min-w-[24px] text-center">{getCanastaCantidad(producto.id)}</span>
                           <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              addToCanasta(producto.id);
-                            }}
-                            className="p-1"
+                            onClick={() => addToCanasta(producto.id)}
+                            disabled={addingToCart === producto.id}
+                            className="w-6 h-6 flex items-center justify-center hover:bg-white/20 rounded-full transition-colors"
                           >
                             <Plus className="w-4 h-4" />
                           </button>
                         </div>
                       ) : (
-                        <Plus className="w-5 h-5" />
-                      )}
-                    </button>
+                        <button
+                          onClick={() => addToCanasta(producto.id)}
+                          disabled={addingToCart === producto.id}
+                          className={`w-10 h-10 rounded-full flex items-center justify-center transition-all ${
+                            addingToCart === producto.id
+                              ? "bg-green-500 text-white scale-110"
+                              : "bg-[#dc2626] text-white hover:bg-[#991b1b]"
+                          }`}
+                        >
+                          <Plus className="w-5 h-5" />
+                        </button>
+                      )
+                    ) : (
+                      <div className="w-10 h-10 rounded-full flex items-center justify-center bg-gray-200 text-gray-400">
+                        <span className="text-xs">Agotado</span>
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>
@@ -252,101 +331,19 @@ export default function MenuPage() {
         </div>
       </section>
 
-      {/* Canasta Sidebar */}
-      {showCanasta && (
-        <div className="fixed inset-0 z-50">
-          <div className="absolute inset-0 bg-black/50" onClick={() => setShowCanasta(false)} />
-          <div className="absolute right-0 top-0 h-full w-full max-w-md bg-white shadow-xl">
-            <div className="p-6 h-full flex flex-col">
-              <div className="flex items-center justify-between mb-6">
-                <h2 className="text-2xl font-bold text-gray-900">Tu Canasta</h2>
-                <button
-                  onClick={() => setShowCanasta(false)}
-                  className="p-2 hover:bg-gray-100 rounded-lg"
-                >
-                  ✕
-                </button>
-              </div>
-
-              {getCanastaCount() === 0 ? (
-                <div className="flex-1 flex flex-col items-center justify-center text-gray-500">
-                  <ShoppingCart className="w-16 h-16 mb-4 opacity-50" />
-                  <p>Tu canasta está vacía</p>
-                </div>
-              ) : (
-                <>
-                  <div className="flex-1 overflow-y-auto space-y-4">
-                    {productos
-                      .filter((p) => canasta[p.id])
-                      .map((producto) => (
-                        <div key={producto.id} className="flex gap-4 p-4 bg-gray-50 rounded-xl">
-                          <div className="w-20 h-20 bg-gray-100 rounded-lg flex items-center justify-center">
-                            {producto.imagen ? (
-                              <img
-                                src={producto.imagen}
-                                alt={producto.nombre}
-                                className="w-full h-full object-cover rounded-lg"
-                              />
-                            ) : (
-                              <span className="text-3xl">🍕</span>
-                            )}
-                          </div>
-                          <div className="flex-1">
-                            <h4 className="font-bold text-gray-900">{producto.nombre}</h4>
-                            <p className="text-sm text-gray-500">
-                              {formatCurrency(
-                                (producto.precio_oferta || producto.precio) * canasta[producto.id]
-                              )}
-                            </p>
-                            <div className="flex items-center gap-2 mt-2">
-                              <button
-                                onClick={() => removeFromCanasta(producto.id)}
-                                className="w-8 h-8 bg-gray-200 rounded-full flex items-center justify-center hover:bg-gray-300"
-                              >
-                                -
-                              </button>
-                              <span className="font-bold">{canasta[producto.id]}</span>
-                              <button
-                                onClick={() => addToCanasta(producto.id)}
-                                className="w-8 h-8 bg-gray-200 rounded-full flex items-center justify-center hover:bg-gray-300"
-                              >
-                                +
-                              </button>
-                            </div>
-                          </div>
-                        </div>
-                      ))}
-                  </div>
-
-                  <div className="pt-6 border-t">
-                    <div className="flex justify-between mb-4">
-                      <span className="text-lg font-medium">Total:</span>
-                      <span className="text-2xl font-black text-[#dc2626]">
-                        {formatCurrency(
-                          productos
-                            .filter((p) => canasta[p.id])
-                            .reduce(
-                              (sum, p) =>
-                                sum +
-                                (p.precio_oferta || p.precio) * (canasta[p.id] || 0),
-                              0
-                            )
-                        )}
-                      </span>
-                    </div>
-
-                    <Link
-                      href={user ? "/cliente/canasta" : "/cliente/login?redirect=/cliente/canasta"}
-                      onClick={() => setShowCanasta(false)}
-                      className="block w-full py-4 bg-[#dc2626] text-white text-center rounded-xl font-bold hover:bg-[#991b1b] transition-colors"
-                    >
-                      {user ? "Ir al Checkout" : "Iniciar Sesión para Continuar"}
-                    </Link>
-                  </div>
-                </>
-              )}
-            </div>
-          </div>
+      {/* Botón flotante para ir al checkout */}
+      {user?.rol === 'cliente' && getCanastaCount() > 0 && (
+        <div className="fixed bottom-6 right-6 z-40">
+          <Link
+            href="/cliente/canasta"
+            className="flex items-center gap-3 bg-[#dc2626] text-white px-6 py-4 rounded-full font-bold shadow-lg hover:bg-[#991b1b] transition-all hover:scale-105"
+          >
+            <ShoppingCart className="w-6 h-6" />
+            <span>Ver Canasta ({getCanastaCount()})</span>
+            <span className="bg-white text-[#dc2626] px-3 py-1 rounded-full text-lg font-black">
+              {formatCurrency(getCanastaTotal())}
+            </span>
+          </Link>
         </div>
       )}
     </div>

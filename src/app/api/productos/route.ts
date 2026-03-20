@@ -26,6 +26,7 @@ export async function GET(req: NextRequest) {
     const { searchParams } = new URL(req.url);
     const categoriaId = searchParams.get('categoria');
     const disponible = searchParams.get('disponible');
+    const random = searchParams.get('random');
     const limit = parseInt(searchParams.get('limit') || '100');
     const offset = parseInt(searchParams.get('offset') || '0');
 
@@ -47,7 +48,12 @@ export async function GET(req: NextRequest) {
       params.push(disponible === 'true' ? 1 : 0);
     }
 
-    sql += ' ORDER BY p.orden ASC, p.nombre ASC LIMIT ? OFFSET ?';
+    if (random === 'true') {
+      sql += ' ORDER BY RAND()';
+    } else {
+      sql += ' ORDER BY p.orden ASC, p.nombre ASC';
+    }
+    sql += ' LIMIT ? OFFSET ?';
     params.push(limit, offset);
 
     const productos = await query<ProductoRow[]>(sql, params);

@@ -42,6 +42,15 @@ export async function GET(req: NextRequest) {
       configFormateada[c.grupo][c.clave] = c.valor;
     });
 
+    if (configFormateada.general) {
+      if (!configFormateada.general.horario_apertura) {
+        configFormateada.general.horario_apertura = '10:00';
+      }
+      if (!configFormateada.general.horario_cierre) {
+        configFormateada.general.horario_cierre = '22:00';
+      }
+    }
+
     return NextResponse.json({ configuracion: configFormateada });
 
   } catch (error) {

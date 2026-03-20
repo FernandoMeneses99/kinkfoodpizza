@@ -33,40 +33,64 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
+    let mounted = true;
+
     const checkAuth = async () => {
       const token = localStorage.getItem("accessToken");
+      
       if (!token) {
-        router.push("/cliente/login?redirect=/admin");
+        if (mounted) {
+          router.push("/cliente/login?redirect=/admin");
+        }
         return;
       }
 
       try {
-        const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000'}/api/auth/me`, {
+        const res = await fetch("/api/auth/me", {
           headers: { Authorization: `Bearer ${token}` },
         });
 
         if (!res.ok) {
-          localStorage.removeItem("accessToken");
-          localStorage.removeItem("refreshToken");
-          router.push("/cliente/login?redirect=/admin");
+          if (mounted) {
+            localStorage.removeItem("accessToken");
+            localStorage.removeItem("refreshToken");
+            localStorage.removeItem("user");
+            router.push("/cliente/login?redirect=/admin");
+          }
           return;
         }
 
         const data = await res.json();
         if (data.user.rol !== "admin") {
-          router.push("/");
+          if (mounted) {
+            router.push("/");
+          }
           return;
         }
 
-        setUser(data.user);
-      } catch {
-        router.push("/cliente/login?redirect=/admin");
+        if (mounted) {
+          setUser(data.user);
+        }
+      } catch (error) {
+        console.error("Error verificando auth:", error);
+        if (mounted) {
+          localStorage.removeItem("accessToken");
+          localStorage.removeItem("refreshToken");
+          localStorage.removeItem("user");
+          router.push("/cliente/login?redirect=/admin");
+        }
       } finally {
-        setIsLoading(false);
+        if (mounted) {
+          setIsLoading(false);
+        }
       }
     };
 
     checkAuth();
+
+    return () => {
+      mounted = false;
+    };
   }, [router]);
 
   const handleLogout = () => {

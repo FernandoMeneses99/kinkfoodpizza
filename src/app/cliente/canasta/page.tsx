@@ -46,6 +46,17 @@ export default function CanastaPage() {
     notas: "",
   });
 
+  const getImageUrl = (imagePath: string | null) => {
+    if (!imagePath) return null;
+    if (imagePath.startsWith('http://') || imagePath.startsWith('https://')) {
+      return imagePath;
+    }
+    if (imagePath.startsWith('/')) {
+      return imagePath;
+    }
+    return `/${imagePath}`;
+  };
+
   useEffect(() => {
     if (!authLoading && !user) {
       router.push("/cliente/login?redirect=/cliente/canasta");
@@ -244,12 +255,19 @@ export default function CanastaPage() {
                   <div className="space-y-4">
                     {items.map((item) => (
                       <div key={item.id} className="flex gap-4 p-4 bg-gray-50 rounded-xl">
-                        <div className="w-20 h-20 bg-gray-100 rounded-lg flex items-center justify-center">
-                          {item.imagen ? (
-                            <img src={item.imagen} alt={item.nombre} className="w-full h-full object-cover rounded-lg" />
-                          ) : (
-                            <span className="text-3xl">🍕</span>
-                          )}
+                        <div className="w-20 h-20 bg-gray-100 rounded-lg flex items-center justify-center overflow-hidden">
+                          {getImageUrl(item.imagen) ? (
+                            <img 
+                              src={getImageUrl(item.imagen)!} 
+                              alt={item.nombre} 
+                              className="w-full h-full object-cover rounded-lg"
+                              onError={(e) => {
+                                (e.target as HTMLImageElement).style.display = 'none';
+                                (e.target as HTMLImageElement).nextElementSibling?.classList.remove('hidden');
+                              }}
+                            />
+                          ) : null}
+                          <span className={`text-3xl ${getImageUrl(item.imagen) ? 'hidden' : ''}`}>🍕</span>
                         </div>
                         <div className="flex-1">
                           <h4 className="font-bold text-gray-900">{item.nombre}</h4>

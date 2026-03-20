@@ -45,6 +45,8 @@ export default function AdminProductos() {
   const [showModal, setShowModal] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Producto | null>(null);
   const [uploading, setUploading] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
 
   const [form, setForm] = useState({
     nombre: "",
@@ -88,6 +90,9 @@ export default function AdminProductos() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setError("");
+    setSaving(true);
+    
     try {
       const token = localStorage.getItem("accessToken");
       const method = editingProduct ? "PUT" : "POST";
@@ -111,12 +116,19 @@ export default function AdminProductos() {
         }),
       });
 
+      const data = await res.json();
+      
       if (res.ok) {
         fetchData();
         closeModal();
+      } else {
+        setError(data.error || "Error al guardar el producto");
       }
-    } catch (error) {
-      console.error("Error saving product:", error);
+    } catch (err) {
+      console.error("Error saving product:", err);
+      setError("Error de conexión");
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -225,6 +237,7 @@ export default function AdminProductos() {
   const closeModal = () => {
     setShowModal(false);
     setEditingProduct(null);
+    setError("");
   };
 
   const filteredProductos = productos.filter((p) =>
@@ -298,7 +311,14 @@ export default function AdminProductos() {
                     <div className="flex items-center gap-4">
                       <div className="w-12 h-12 bg-gray-100 rounded-lg flex items-center justify-center overflow-hidden">
                         {product.imagen ? (
-                          <img src={product.imagen} alt={product.nombre} className="w-full h-full object-cover" />
+                          <img 
+                            src={product.imagen.startsWith('/') ? product.imagen : '/' + product.imagen} 
+                            alt={product.nombre} 
+                            className="w-full h-full object-cover"
+                            onError={(e) => {
+                              (e.target as HTMLImageElement).style.display = 'none';
+                            }}
+                          />
                         ) : (
                           <ImageIcon className="w-6 h-6 text-gray-400" />
                         )}
@@ -381,6 +401,12 @@ export default function AdminProductos() {
             </div>
 
             <form onSubmit={handleSubmit} className="p-6 space-y-6">
+              {error && (
+                <div className="p-4 bg-red-50 border border-red-200 rounded-xl text-red-600 text-sm">
+                  {error}
+                </div>
+              )}
+              
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">Nombre *</label>
@@ -484,7 +510,14 @@ export default function AdminProductos() {
                 <div className="flex items-center gap-4">
                   {form.imagen && (
                     <div className="w-24 h-24 bg-gray-100 rounded-xl overflow-hidden">
-                      <img src={form.imagen} alt="Preview" className="w-full h-full object-cover" />
+                      <img 
+                        src={form.imagen.startsWith('/') ? form.imagen : '/' + form.imagen} 
+                        alt="Preview" 
+                        className="w-full h-full object-cover"
+                        onError={(e) => {
+                          (e.target as HTMLImageElement).parentElement!.style.display = 'none';
+                        }}
+                      />
                     </div>
                   )}
                   <label className="flex items-center gap-2 px-4 py-3 bg-gray-100 rounded-xl cursor-pointer hover:bg-gray-200 transition-colors">
@@ -535,9 +568,10 @@ export default function AdminProductos() {
                 </button>
                 <button
                   type="submit"
-                  className="flex-1 px-6 py-3 bg-[#dc2626] text-white rounded-xl font-bold hover:bg-[#991b1b] transition-colors"
+                  disabled={saving}
+                  className="flex-1 px-6 py-3 bg-[#dc2626] text-white rounded-xl font-bold hover:bg-[#991b1b] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  {editingProduct ? "Guardar Cambios" : "Crear Producto"}
+                  {saving ? "Guardando..." : editingProduct ? "Guardar Cambios" : "Crear Producto"}
                 </button>
               </div>
             </form>

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import {
   Search,
   Filter,
@@ -11,6 +11,8 @@ import {
   Check,
   X,
   Eye,
+  Bell,
+  Volume2,
 } from "lucide-react";
 
 interface OrdenDetalle {
@@ -59,10 +61,53 @@ export default function AdminOrdenes() {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedOrden, setSelectedOrden] = useState<Orden | null>(null);
   const [updating, setUpdating] = useState(false);
+  const [showNotification, setShowNotification] = useState(false);
+  const [newOrdersCount, setNewOrdersCount] = useState(0);
+  const [soundEnabled, setSoundEnabled] = useState(true);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+  const lastOrderIdRef = useRef<number | null>(null);
+  const previousOrderIdsRef = useRef<Set<number>>(new Set());
+
+  useEffect(() => {
+    audioRef.current = new Audio("/sounds/notification.mp3");
+    audioRef.current.volume = 0.5;
+  }, []);
 
   useEffect(() => {
     fetchOrdenes();
   }, []);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      fetchOrdenesSilent();
+    }, 10000);
+    return () => clearInterval(interval);
+  }, []);
+
+  const playNotificationSound = () => {
+    if (!soundEnabled) return;
+    
+    try {
+      const audioContext = new (window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext)();
+      const oscillator = audioContext.createOscillator();
+      const gainNode = audioContext.createGain();
+      
+      oscillator.connect(gainNode);
+      gainNode.connect(audioContext.destination);
+      
+      oscillator.frequency.value = 800;
+      oscillator.type = "sine";
+      gainNode.gain.value = 0.3;
+      
+      oscillator.start();
+      setTimeout(() => {
+        oscillator.stop();
+        audioContext.close();
+      }, 200);
+    } catch {
+      console.log("Audio not supported");
+    }
+  };
 
   const fetchOrdenes = async () => {
     try {
@@ -71,11 +116,48 @@ export default function AdminOrdenes() {
         headers: { Authorization: `Bearer ${token}` },
       });
       const data = await res.json();
-      setOrdenes(data.ordenes || []);
+      const ordenesData = data.ordenes || [];
+      
+      if (lastOrderIdRef.current === null) {
+        lastOrderIdRef.current = ordenesData[0]?.id || null;
+        previousOrderIdsRef.current = new Set(ordenesData.map((o: Orden) => o.id));
+      }
+      
+      setOrdenes(ordenesData);
     } catch (error) {
       console.error("Error fetching ordenes:", error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchOrdenesSilent = async () => {
+    try {
+      const token = localStorage.getItem("accessToken");
+      const res = await fetch("/api/admin/ordenes", {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const data = await res.json();
+      const ordenesData: Orden[] = data.ordenes || [];
+      
+      const newOrdenes = ordenesData.filter(
+        (o) => !previousOrderIdsRef.current.has(o.id)
+      );
+      
+      if (newOrdenes.length > 0) {
+        setNewOrdersCount((prev) => prev + newOrdenes.length);
+        setShowNotification(true);
+        playNotificationSound();
+        
+        setTimeout(() => {
+          setShowNotification(false);
+        }, 5000);
+      }
+      
+      previousOrderIdsRef.current = new Set(ordenesData.map((o: Orden) => o.id));
+      setOrdenes(ordenesData);
+    } catch (error) {
+      console.error("Error fetching ordenes:", error);
     }
   };
 
@@ -108,11 +190,11 @@ export default function AdminOrdenes() {
 
   const getNextEstados = (currentEstado: string) => {
     const flow: Record<string, string[]> = {
-      pendiente: ["pagado", "cancelado"],
+      pendiente: ["confirmado", "pagado", "cancelado"],
       pagado: ["confirmado", "cancelado"],
       confirmado: ["preparando", "cancelado"],
       preparando: ["listo", "cancelado"],
-      listo: ["en_camino"],
+      listo: ["en_camino", "cancelado"],
       en_camino: ["entregado", "cancelado"],
       entregado: [],
       cancelado: [],
@@ -161,11 +243,67 @@ export default function AdminOrdenes() {
 
   return (
     <div className="p-6 lg:p-8">
-      <div className="mb-8">
-        <h1 className="text-3xl font-black text-gray-900">Órdenes</h1>
-        <p className="text-gray-600 mt-1">
-          {ordenes.length} órdenes | {ordenes.filter((o) => !["entregado", "cancelado"].includes(o.estado)).length} activas
-        </p>
+      {/* Notification Banner */}
+      {showNotification && (
+        <div className="fixed top-4 right-4 z-50 animate-slide-in">
+          <div className="bg-green-600 text-white px-6 py-4 rounded-xl shadow-2xl flex items-center gap-3">
+            <div className="relative">
+              <Bell className="w-6 h-6 animate-bounce" />
+              {newOrdersCount > 0 && (
+                <span className="absolute -top-2 -right-2 w-5 h-5 bg-yellow-400 text-green-800 text-xs font-bold rounded-full flex items-center justify-center">
+                  {newOrdersCount}
+                </span>
+              )}
+            </div>
+            <div>
+              <p className="font-bold">¡Nueva orden!</p>
+              <p className="text-sm text-green-100">Hay {newOrdersCount > 0 ? `${newOrdersCount} nuevo(s)` : '1 nuevo'} pedido(s)</p>
+            </div>
+            <button
+              onClick={() => {
+                setShowNotification(false);
+                setNewOrdersCount(0);
+              }}
+              className="ml-2 p-1 hover:bg-green-700 rounded"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Header */}
+      <div className="flex items-center justify-between mb-8">
+        <div>
+          <h1 className="text-3xl font-black text-gray-900">Órdenes</h1>
+          <p className="text-gray-600 mt-1">
+            {ordenes.length} órdenes | {ordenes.filter((o) => !["entregado", "cancelado"].includes(o.estado)).length} activas
+          </p>
+        </div>
+        <div className="flex items-center gap-3">
+          {/* Sound toggle */}
+          <button
+            onClick={() => setSoundEnabled(!soundEnabled)}
+            className={`p-3 rounded-xl transition-colors ${
+              soundEnabled 
+                ? "bg-green-100 text-green-700 hover:bg-green-200" 
+                : "bg-gray-100 text-gray-500 hover:bg-gray-200"
+            }`}
+            title={soundEnabled ? "Sonido activado" : "Sonido desactivado"}
+          >
+            {soundEnabled ? <Volume2 className="w-5 h-5" /> : <X className="w-5 h-5" />}
+          </button>
+          {/* Refresh button */}
+          <button
+            onClick={() => {
+              fetchOrdenes();
+              setNewOrdersCount(0);
+            }}
+            className="px-4 py-2 bg-[#dc2626] text-white rounded-xl font-medium hover:bg-[#991b1b] transition-colors"
+          >
+            Actualizar
+          </button>
+        </div>
       </div>
 
       {/* Filters */}

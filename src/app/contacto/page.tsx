@@ -10,6 +10,8 @@ export default function ContactoPage() {
   const [isPreloaderVisible, setIsPreloaderVisible] = useState(true);
   const [formData, setFormData] = useState({ name: "", email: "", service: "", message: "" });
   const [submitted, setSubmitted] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState("");
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -18,10 +20,33 @@ export default function ContactoPage() {
     return () => clearTimeout(timer);
   }, []);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setSubmitted(true);
-    setTimeout(() => setSubmitted(false), 3000);
+    setIsLoading(true);
+    setError("");
+    
+    try {
+      const res = await fetch('/api/contacto', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(formData)
+      });
+      
+      const data = await res.json();
+      
+      if (res.ok) {
+        setSubmitted(true);
+        setFormData({ name: "", email: "", service: "", message: "" });
+        setTimeout(() => setSubmitted(false), 5000);
+      } else {
+        setError(data.error || 'Error al enviar el mensaje');
+      }
+    } catch (error) {
+      console.error('Error al enviar mensaje:', error);
+      setError('Error de conexión. Intenta de nuevo.');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const contactInfo = [
@@ -175,12 +200,28 @@ export default function ContactoPage() {
                       ></textarea>
                     </div>
 
+                    {error && (
+                      <div className="p-4 bg-red-50 border border-red-200 rounded-xl text-red-700 text-sm">
+                        {error}
+                      </div>
+                    )}
+
                     <button 
                       type="submit"
-                      className="w-full bg-gradient-to-r from-[#dc2626] to-[#991b1b] text-white py-4 rounded-xl font-bold text-lg hover:shadow-lg transition-all hover:scale-[1.02] flex items-center justify-center gap-2"
+                      disabled={isLoading}
+                      className="w-full bg-gradient-to-r from-[#dc2626] to-[#991b1b] text-white py-4 rounded-xl font-bold text-lg hover:shadow-lg transition-all hover:scale-[1.02] flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
                     >
-                      <Send className="w-5 h-5" />
-                      Enviar Mensaje
+                      {isLoading ? (
+                        <>
+                          <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                          Enviando...
+                        </>
+                      ) : (
+                        <>
+                          <Send className="w-5 h-5" />
+                          Enviar Mensaje
+                        </>
+                      )}
                     </button>
                   </form>
                 )}

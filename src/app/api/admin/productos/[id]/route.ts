@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { query } from '@/lib/db';
 import { ResultSetHeader } from 'mysql2';
-import { productoSchema, slugify } from '@/lib/validation';
+import { slugify } from '@/lib/validation';
 
 export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
@@ -22,34 +22,34 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
     const { id } = await params;
     const body = await req.json();
     
-    const { error, value } = productoSchema.validate(body);
-    if (error) {
+    if (!body.nombre || !body.precio || !body.categoria_id) {
       return NextResponse.json(
-        { error: error.details[0].message },
+        { error: 'Nombre, precio y categoría son requeridos' },
         { status: 400 }
       );
     }
 
-    const slug = slugify(value.nombre);
+    const slug = slugify(body.nombre);
 
     await query<ResultSetHeader>(
       `UPDATE productos SET 
         categoria_id = ?, nombre = ?, slug = ?, descripcion = ?, 
-        precio = ?, precio_oferta = ?, ingredientes = ?, 
+        precio = ?, precio_oferta = ?, ingredientes = ?, imagen = ?,
         tiempo_preparacion = ?, disponible = ?, destacado = ?, stock = ?
        WHERE id_producto = ?`,
       [
-        value.categoria_id,
-        value.nombre,
+        body.categoria_id,
+        body.nombre,
         slug,
-        value.descripcion,
-        value.precio,
-        value.precio_oferta,
-        value.ingredientes,
-        value.tiempo_preparacion,
-        value.disponible ? 1 : 0,
-        value.destacado ? 1 : 0,
-        value.stock,
+        body.descripcion || null,
+        body.precio,
+        body.precio_oferta || null,
+        body.ingredientes || null,
+        body.imagen || null,
+        body.tiempo_preparacion || 15,
+        body.disponible ? 1 : 0,
+        body.destacado ? 1 : 0,
+        body.stock || 100,
         parseInt(id)
       ]
     );

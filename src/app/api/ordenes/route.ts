@@ -91,7 +91,7 @@ export async function POST(req: NextRequest) {
     }
 
     const canasta = await query<RowDataPacket[]>(
-      `SELECT c.*, p.nombre, p.precio, p.stock
+      `SELECT c.*, p.nombre, p.precio, p.stock, p.disponible
        FROM canasta c
        JOIN productos p ON c.producto_id = p.id_producto
        WHERE c.usuario_id = ?`,

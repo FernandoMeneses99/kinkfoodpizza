@@ -39,13 +39,6 @@ export const ordenSchema = Joi.object({
   referencia_direccion: Joi.string().max(500).allow('', null),
   metodo_pago: Joi.string().valid('wompi', 'nequi', 'daviplata', 'contra_entrega').required(),
   notas: Joi.string().max(500).allow('', null),
-  items: Joi.array().items(
-    Joi.object({
-      producto_id: Joi.number().integer().positive().required(),
-      cantidad: Joi.number().integer().positive().required(),
-      observaciones: Joi.string().max(200).allow('', null),
-    })
-  ).min(1).required(),
 });
 
 export const direccionSchema = Joi.object({

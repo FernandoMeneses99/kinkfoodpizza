@@ -24,6 +24,8 @@ interface Config {
     direccion: string;
     domicilio_gratis_desde: string;
     costo_domicilio: string;
+    horario_apertura: string;
+    horario_cierre: string;
   };
   social: {
     facebook_url: string;
@@ -229,6 +231,32 @@ export default function AdminConfiguracion() {
                 className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:border-[#dc2626]"
               />
             </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Horario Apertura</label>
+                <input
+                  type="time"
+                  value={config.general.horario_apertura || '10:00'}
+                  onChange={(e) => handleChange("general", "horario_apertura", e.target.value)}
+                  onBlur={(e) => handleBlur("horario_apertura", e.target.value)}
+                  className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:border-[#dc2626]"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Horario Cierre</label>
+                <input
+                  type="time"
+                  value={config.general.horario_cierre || '22:00'}
+                  onChange={(e) => handleChange("general", "horario_cierre", e.target.value)}
+                  onBlur={(e) => handleBlur("horario_cierre", e.target.value)}
+                  className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:border-[#dc2626]"
+                />
+              </div>
+            </div>
+            <p className="text-xs text-gray-500 mt-1">
+              Estos horarios determinan si el negocio aparece como "Abierto" o "Cerrado" en el navbar
+            </p>
           </div>
         </div>
 

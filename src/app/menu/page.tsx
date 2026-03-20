@@ -34,6 +34,17 @@ export default function MenuPage() {
   const [error, setError] = useState<string | null>(null);
   const dataFetched = useRef(false);
 
+  const getImageUrl = (imagePath: string | null) => {
+    if (!imagePath) return null;
+    if (imagePath.startsWith('http://') || imagePath.startsWith('https://')) {
+      return imagePath;
+    }
+    if (imagePath.startsWith('/')) {
+      return imagePath;
+    }
+    return `/${imagePath}`;
+  };
+
   const fallbackCategories: Categoria[] = [
     { id: 1, nombre: 'Pizzas', icono: '🍕' },
     { id: 2, nombre: 'Hamburguesas', icono: '🍔' },
@@ -220,15 +231,18 @@ export default function MenuPage() {
                 >
                   {/* Image */}
                   <div className="relative h-40 bg-gradient-to-br from-red-50 to-orange-100 flex items-center justify-center overflow-hidden">
-                    {product.imagen ? (
+                    {getImageUrl(product.imagen) ? (
                       <img 
-                        src={product.imagen} 
+                        src={getImageUrl(product.imagen)!} 
                         alt={product.nombre}
                         className="w-full h-full object-cover"
+                        onError={(e) => {
+                          (e.target as HTMLImageElement).style.display = 'none';
+                          (e.target as HTMLImageElement).nextElementSibling?.classList.remove('hidden');
+                        }}
                       />
-                    ) : (
-                      <span className="text-6xl transform group-hover:scale-110 transition-transform">🍕</span>
-                    )}
+                    ) : null}
+                    <span className={`text-6xl transform group-hover:scale-110 transition-transform ${getImageUrl(product.imagen) ? 'hidden' : ''}`}>🍕</span>
                     {product.destacado && (
                       <span className="absolute top-3 left-3 px-3 py-1 bg-yellow-400 text-gray-900 text-xs font-bold rounded-full">
                         Destacado
