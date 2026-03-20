@@ -77,7 +77,7 @@ export default function RootLayout({
         <link rel="icon" href="/favicon.ico" sizes="any" />
         <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
       </head>
-      <body className={`${roboto.variable} ${raleway.variable}`}>
+      <body className={`${roboto.variable} ${raleway.variable}`} suppressHydrationWarning>
       <AuthProvider>{children}</AuthProvider>
     </body>
     </html>

@@ -568,12 +568,12 @@ ORDER BY fecha DESC;
 -- 7.1 Categorías
 -- -----------------------------------------------------
 INSERT INTO categorias (nombre, slug, descripcion, icono, orden) VALUES
-('Pizzas', 'pizzas', 'Nuestras pizzas artesanales elaboradas con masa madre y horneadas en horno de leña', 'pizza', 1),
-('Hamburguesas', 'hamburguesas', 'Jugosas hamburguesas artesanales con carne de res 100% colombiana', 'hamburger', 2),
-('Pastas', 'pastas', 'Pastas frescas hechas en casa con las mejores salsas', 'pasta', 3),
-('Bebidas', 'bebidas', 'Refrescantes bebidas para acompañar tu comida', 'cup', 4),
-('Postres', 'postres', 'Dulces tentaciones para terminar tu comida', 'cake', 5),
-('Ensaladas', 'ensaladas', 'Frescas ensaladas con ingredientes orgánicos', 'leaf', 6);
+('Pizzas', 'pizzas', 'Nuestras pizzas artesanales elaboradas con masa madre y horneadas en horno de leña', '🍕', 1),
+('Hamburguesas', 'hamburguesas', 'Jugosas hamburguesas artesanales con carne de res 100% colombiana', '🍔', 2),
+('Pastas', 'pastas', 'Pastas frescas hechas en casa con las mejores salsas', '🍝', 3),
+('Bebidas', 'bebidas', 'Refrescantes bebidas para acompañar tu comida', '🥤', 4),
+('Postres', 'postres', 'Dulces tentaciones para terminar tu comida', '🍰', 5),
+('Ensaladas', 'ensaladas', 'Frescas ensaladas con ingredientes orgánicos', '🥗', 6);
 
 -- -----------------------------------------------------
 -- 7.2 Productos

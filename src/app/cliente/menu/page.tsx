@@ -156,7 +156,9 @@ export default function MenuPage() {
             {filteredProductos.map((producto) => (
               <div
                 key={producto.id}
-                className="bg-white rounded-2xl shadow-sm overflow-hidden hover:shadow-lg transition-shadow"
+                className={`bg-white rounded-2xl shadow-sm overflow-hidden hover:shadow-lg transition-all ${
+                  !producto.disponible ? "opacity-60" : ""
+                }`}
               >
                 <div className="relative h-48 bg-gradient-to-br from-red-50 to-orange-100 flex items-center justify-center">
                   {producto.imagen ? (
@@ -176,6 +178,13 @@ export default function MenuPage() {
                   {producto.precio_oferta && (
                     <span className="absolute top-3 right-3 px-3 py-1 bg-green-500 text-white text-xs font-bold rounded-full">
                       Oferta
+                    </span>
+                  )}
+                  {!producto.disponible && (
+                    <span className="absolute inset-0 bg-black/30 flex items-center justify-center">
+                      <span className="px-4 py-2 bg-gray-800 text-white text-sm font-bold rounded-lg">
+                        Agotado
+                      </span>
                     </span>
                   )}
                 </div>
