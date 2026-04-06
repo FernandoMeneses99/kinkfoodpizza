@@ -2,7 +2,8 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { Phone, MapPin, Mail, Facebook, Twitter, Instagram, Linkedin, Send, MessageCircle, Clock, CheckCircle } from "lucide-react";
+import { Phone, MapPin, Mail, Send, MessageCircle, Clock, CheckCircle } from "lucide-react";
+import { SocialIcon } from "@/components/SocialIcon";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 
@@ -251,16 +252,16 @@ export default function ContactoPage() {
                 <p className="text-gray-600 mb-6">Mantente conectado con nuestras promociones</p>
                 <div className="grid grid-cols-4 gap-4">
                   <a href="#" className="w-12 h-12 bg-blue-600 rounded-xl flex items-center justify-center text-white hover:scale-110 transition-transform">
-                    <Facebook className="w-6 h-6" />
+                    <SocialIcon platform="facebook" className="w-6 h-6" />
                   </a>
                   <a href="#" className="w-12 h-12 bg-sky-500 rounded-xl flex items-center justify-center text-white hover:scale-110 transition-transform">
-                    <Twitter className="w-6 h-6" />
+                    <SocialIcon platform="twitter" className="w-6 h-6" />
                   </a>
                   <a href="#" className="w-12 h-12 bg-gradient-to-br from-purple-600 via-orange-400 to-red-500 rounded-xl flex items-center justify-center text-white hover:scale-110 transition-transform">
-                    <Instagram className="w-6 h-6" />
+                    <SocialIcon platform="instagram" className="w-6 h-6" />
                   </a>
                   <a href="#" className="w-12 h-12 bg-blue-700 rounded-xl flex items-center justify-center text-white hover:scale-110 transition-transform">
-                    <Linkedin className="w-6 h-6" />
+                    <SocialIcon platform="linkedin" className="w-6 h-6" />
                   </a>
                 </div>
               </div>

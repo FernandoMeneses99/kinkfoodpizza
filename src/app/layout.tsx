@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import { Roboto, Raleway, Poppins } from "next/font/google";
 import "./globals.css";
 import { AuthProvider } from "@/components/providers/AuthProvider";
+import { CookieProvider } from "@/components/providers/CookieProvider";
+import CookieBanner from "@/components/CookieBanner";
 
 const roboto = Roboto({
   variable: "--font-roboto",
@@ -84,8 +86,13 @@ export default function RootLayout({
         <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
       </head>
       <body className={`${roboto.variable} ${raleway.variable} ${poppins.variable}`} suppressHydrationWarning>
-      <AuthProvider>{children}</AuthProvider>
-    </body>
+        <CookieProvider>
+          <AuthProvider>
+            {children}
+            <CookieBanner />
+          </AuthProvider>
+        </CookieProvider>
+      </body>
     </html>
   );
 }

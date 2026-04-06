@@ -2,7 +2,8 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { Phone, Mail, Facebook, Twitter, Instagram, Linkedin, MapPin } from "lucide-react";
+import { Phone, Mail, MapPin } from "lucide-react";
+import { SocialIcon } from "./SocialIcon";
 
 export default function Footer() {
   return (
@@ -28,7 +29,10 @@ export default function Footer() {
               <li><Link href="/nosotros" className="hover:text-[#dc2626]">• Nosotros</Link></li>
               <li><a href="#" className="hover:text-[#dc2626]">• Últimas Noticias</a></li>
               <li><Link href="/menu" className="hover:text-[#dc2626]">• Nuestra Carta</Link></li>
-              <li><a href="#" className="hover:text-[#dc2626]">• Términos y Condiciones</a></li>
+              <li><Link href="/terminos" className="hover:text-[#dc2626]">• Términos y Condiciones</Link></li>
+              <li><Link href="/privacidad" className="hover:text-[#dc2626]">• Política de Privacidad</Link></li>
+              <li><Link href="/cookies" className="hover:text-[#dc2626]">• Política de Cookies</Link></li>
+              <li><Link href="/devoluciones" className="hover:text-[#dc2626]">• Devoluciones</Link></li>
               <li><Link href="/contacto" className="hover:text-[#dc2626]">• Contáctanos</Link></li>
             </ul>
           </div>
@@ -86,16 +90,16 @@ export default function Footer() {
             {/* Social */}
             <div className="flex gap-3">
               <a href="#" className="w-10 h-10 bg-[#dc2626] rounded-full flex items-center justify-center hover:bg-[#c2185b] transition-colors">
-                <Facebook className="w-5 h-5" />
+                <SocialIcon platform="facebook" className="w-5 h-5" />
               </a>
               <a href="#" className="w-10 h-10 bg-[#dc2626] rounded-full flex items-center justify-center hover:bg-[#c2185b] transition-colors">
-                <Twitter className="w-5 h-5" />
+                <SocialIcon platform="twitter" className="w-5 h-5" />
               </a>
               <a href="#" className="w-10 h-10 bg-[#dc2626] rounded-full flex items-center justify-center hover:bg-[#c2185b] transition-colors">
-                <Instagram className="w-5 h-5" />
+                <SocialIcon platform="instagram" className="w-5 h-5" />
               </a>
               <a href="#" className="w-10 h-10 bg-[#dc2626] rounded-full flex items-center justify-center hover:bg-[#c2185b] transition-colors">
-                <Linkedin className="w-5 h-5" />
+                <SocialIcon platform="linkedin" className="w-5 h-5" />
               </a>
             </div>
           </div>

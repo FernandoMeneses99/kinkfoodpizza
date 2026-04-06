@@ -7,12 +7,11 @@ import {
   Mail,
   MapPin,
   Clock,
-  Facebook,
-  Instagram,
   Globe,
   CreditCard,
   Upload,
 } from "lucide-react";
+import { SocialIcon } from "@/components/SocialIcon";
 
 interface Config {
   general: {
@@ -305,7 +304,7 @@ export default function AdminConfiguracion() {
         <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
           <div className="flex items-center gap-3 mb-6">
             <div className="w-10 h-10 bg-blue-100 rounded-xl flex items-center justify-center">
-              <Facebook className="w-5 h-5 text-blue-600" />
+              <SocialIcon platform="facebook" className="w-5 h-5 text-blue-600" />
             </div>
             <h2 className="text-xl font-bold text-gray-900">Redes Sociales</h2>
           </div>

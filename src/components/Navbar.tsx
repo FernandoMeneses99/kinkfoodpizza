@@ -3,7 +3,8 @@
 import { useEffect, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { Phone, MapPin, Facebook, Instagram, Menu, X, User, Settings, ShoppingCart } from "lucide-react";
+import { Phone, MapPin, Menu, X, User, Settings, ShoppingCart } from "lucide-react";
+import { SocialIcon } from "./SocialIcon";
 import { useAuth } from "@/components/providers/AuthProvider";
 
 interface Configuracion {
@@ -145,10 +146,10 @@ export default function Navbar() {
                   </svg>
                 </a>
                 <a href="#" className="p-1.5 hover:bg-white/10 rounded-full transition-colors">
-                  <Facebook className="w-4 h-4" />
+                  <SocialIcon platform="facebook" className="w-4 h-4" />
                 </a>
                 <a href="#" className="p-1.5 hover:bg-white/10 rounded-full transition-colors">
-                  <Instagram className="w-4 h-4" />
+                  <SocialIcon platform="instagram" className="w-4 h-4" />
                 </a>
               </div>
             </div>

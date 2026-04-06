@@ -2,7 +2,8 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { Pizza, Leaf, Facebook, Twitter, Instagram, Award, Users, Calendar, Star } from "lucide-react";
+import { Pizza, Leaf, Award, Users, Calendar, Star } from "lucide-react";
+import { SocialIcon } from "@/components/SocialIcon";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 
@@ -283,13 +284,13 @@ export default function NosotrosPage() {
                   <p className="text-[#dc2626] font-medium">{member.role}</p>
                   <div className="flex justify-center gap-2 mt-4">
                     <a href="#" className="w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center hover:bg-[#dc2626] hover:text-white transition-colors">
-                      <Facebook className="w-4 h-4" />
+                      <SocialIcon platform="facebook" className="w-4 h-4" />
                     </a>
                     <a href="#" className="w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center hover:bg-[#dc2626] hover:text-white transition-colors">
-                      <Twitter className="w-4 h-4" />
+                      <SocialIcon platform="twitter" className="w-4 h-4" />
                     </a>
                     <a href="#" className="w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center hover:bg-[#dc2626] hover:text-white transition-colors">
-                      <Instagram className="w-4 h-4" />
+                      <SocialIcon platform="instagram" className="w-4 h-4" />
                     </a>
                   </div>
                 </div>
