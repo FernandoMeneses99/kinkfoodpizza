@@ -1,22 +1,30 @@
 import { NextResponse } from 'next/server';
 import { NextRequest } from 'next/server';
-import { getUserFromToken } from '@/lib/auth';
-import { withAuth, AuthenticatedRequest } from '@/middleware/auth';
+import { verifyAccessToken, getUserFromToken } from '@/lib/auth';
+import { getAccessToken, getUserFromCookies } from '@/lib/cookies';
 
-async function handler(req: AuthenticatedRequest) {
+export async function GET(req: NextRequest) {
   try {
-    const authHeader = req.headers.get('authorization');
-    const token = authHeader?.substring(7);
+    const accessToken = getAccessToken(req);
     
-    if (!token) {
+    if (!accessToken) {
       return NextResponse.json(
-        { error: 'Token requerido' },
+        { error: 'No autenticado' },
         { status: 401 }
       );
     }
 
-    const user = await getUserFromToken(token);
+    try {
+      verifyAccessToken(accessToken);
+    } catch {
+      return NextResponse.json(
+        { error: 'Token inválido o expirado' },
+        { status: 401 }
+      );
+    }
 
+    const user = await getUserFromToken(accessToken);
+    
     return NextResponse.json({
       user: {
         id: user.id_usuario,
@@ -24,7 +32,8 @@ async function handler(req: AuthenticatedRequest) {
         nombre: user.nombre,
         telefono: user.telefono,
         rol: user.rol
-      }
+      },
+      token: accessToken
     });
 
   } catch (error) {
@@ -35,5 +44,3 @@ async function handler(req: AuthenticatedRequest) {
     );
   }
 }
-
-export { handler as GET };

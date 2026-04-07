@@ -1,8 +1,8 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import Link from "next/link";
-import { ShoppingBag, Wifi, ThumbsUp, ArrowRight, Filter, Phone, MapPin, Loader2 } from "lucide-react";
+import { ShoppingBag, Wifi, ThumbsUp, ArrowRight, Filter, Phone, MapPin, Loader2, Search, X } from "lucide-react";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 
@@ -30,9 +30,14 @@ export default function MenuPage() {
   const [activeCategory, setActiveCategory] = useState<number | null>(null);
   const [categories, setCategories] = useState<Categoria[]>([]);
   const [products, setProducts] = useState<Producto[]>([]);
+  const [allProducts, setAllProducts] = useState<Producto[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [showSearch, setShowSearch] = useState(false);
+  const searchInputRef = useRef<HTMLInputElement>(null);
   const dataFetched = useRef(false);
+  const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   const getImageUrl = (imagePath: string | null) => {
     if (!imagePath) return null;
@@ -97,13 +102,17 @@ export default function MenuPage() {
         const catData = await catRes.json();
         const prodData = await prodRes.json();
 
+        const fetchedProducts = prodData.productos || [];
+
         if (catData.categorias?.length > 0) {
           setCategories(catData.categorias);
-          setProducts(prodData.productos || []);
+          setProducts(fetchedProducts);
+          setAllProducts(fetchedProducts);
           setActiveCategory(catData.categorias[0].id);
         } else {
           setCategories(fallbackCategories);
           setProducts(fallbackProducts);
+          setAllProducts(fallbackProducts);
           setActiveCategory(1);
           setError('Base de datos no disponible - mostrando datos de ejemplo');
         }
@@ -111,6 +120,7 @@ export default function MenuPage() {
         console.error('Error fetching data:', err);
         setCategories(fallbackCategories);
         setProducts(fallbackProducts);
+        setAllProducts(fallbackProducts);
         setActiveCategory(1);
         setError('Base de datos no disponible - mostrando datos de ejemplo');
       } finally {
@@ -121,8 +131,48 @@ export default function MenuPage() {
     fetchData();
   }, []);
 
-  const filteredProducts = products.filter(p => p.categoria_id === activeCategory);
-  const activeCategoryName = categories.find(c => c.id === activeCategory)?.nombre || '';
+  useEffect(() => {
+    if (showSearch && searchInputRef.current) {
+      searchInputRef.current.focus();
+    }
+  }, [showSearch]);
+
+  const handleSearchChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    setSearchQuery(value);
+
+    if (searchTimeoutRef.current) {
+      clearTimeout(searchTimeoutRef.current);
+    }
+
+    searchTimeoutRef.current = setTimeout(() => {
+      if (value.trim() === "") {
+        setProducts(allProducts);
+        setActiveCategory(null);
+      } else {
+        const filtered = allProducts.filter(p => 
+          p.nombre.toLowerCase().includes(value.toLowerCase()) ||
+          p.descripcion?.toLowerCase().includes(value.toLowerCase())
+        );
+        setProducts(filtered);
+        setActiveCategory(null);
+      }
+    }, 300);
+  }, [allProducts]);
+
+  const clearSearch = () => {
+    setSearchQuery("");
+    setProducts(allProducts);
+    setActiveCategory(categories[0]?.id || 1);
+    setShowSearch(false);
+  };
+
+  const filteredProducts = activeCategory !== null 
+    ? products.filter(p => p.categoria_id === activeCategory)
+    : products;
+  const activeCategoryName = activeCategory !== null 
+    ? categories.find(c => c.id === activeCategory)?.nombre || ''
+    : searchQuery ? "Resultados de búsqueda" : "Todos los productos";
 
   if (isPreloaderVisible) {
     return (
@@ -150,7 +200,38 @@ export default function MenuPage() {
         <div className="container mx-auto px-4 relative text-center text-white">
           <div className="text-8xl mb-4">🍕🌯🍔</div>
           <h1 className="text-5xl md:text-6xl font-black mb-4">NUESTRO MENÚ</h1>
-          <p className="text-xl text-white/80 max-w-2xl mx-auto">Los mejores platos con ingredientes frescos y sabores auténticos</p>
+          <p className="text-xl text-white/80 max-w-2xl mx-auto mb-6">Los mejores platos con ingredientes frescos y sabores auténticos</p>
+          
+          {/* Search Bar */}
+          <div className="max-w-xl mx-auto relative">
+            {showSearch ? (
+              <div className="relative">
+                <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                <input
+                  ref={searchInputRef}
+                  type="text"
+                  value={searchQuery}
+                  onChange={handleSearchChange}
+                  placeholder="Buscar productos..."
+                  className="w-full pl-12 pr-12 py-4 rounded-full text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-4 focus:ring-yellow-400/50"
+                />
+                <button
+                  onClick={clearSearch}
+                  className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+            ) : (
+              <button
+                onClick={() => setShowSearch(true)}
+                className="inline-flex items-center gap-2 bg-white/20 hover:bg-white/30 px-6 py-3 rounded-full transition-colors"
+              >
+                <Search className="w-5 h-5" />
+                <span>Buscar producto...</span>
+              </button>
+            )}
+          </div>
         </div>
         {/* Wave */}
         <div className="absolute bottom-0 left-0 right-0">
@@ -175,12 +256,29 @@ export default function MenuPage() {
                 </div>
               )}
               <div className="flex flex-wrap justify-center gap-3">
+                <button
+                  onClick={() => {
+                    setActiveCategory(null);
+                    setProducts(allProducts);
+                    setSearchQuery("");
+                  }}
+                  className={`px-6 py-2.5 rounded-full font-bold transition-all ${
+                    activeCategory === null && !searchQuery
+                      ? 'bg-[#dc2626] text-white shadow-lg scale-105' 
+                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                  }`}
+                >
+                  🍽️ Todos
+                </button>
                 {categories.map((cat) => (
                   <button
                     key={cat.id}
-                    onClick={() => setActiveCategory(cat.id)}
+                    onClick={() => {
+                      setActiveCategory(cat.id);
+                      setSearchQuery("");
+                    }}
                     className={`px-6 py-2.5 rounded-full font-bold transition-all ${
-                      activeCategory === cat.id 
+                      activeCategory === cat.id && !searchQuery
                         ? 'bg-[#dc2626] text-white shadow-lg scale-105' 
                         : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                     }`}

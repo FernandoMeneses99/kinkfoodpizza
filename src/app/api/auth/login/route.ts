@@ -2,9 +2,16 @@ import { NextRequest, NextResponse } from 'next/server';
 import { query } from '@/lib/db';
 import { comparePassword, createTokens, updateLastLogin } from '@/lib/auth';
 import { loginSchema } from '@/lib/validation';
+import { setAuthCookies } from '@/lib/cookies';
+import { authRateLimit } from '@/lib/rate-limit';
 import { RowDataPacket } from 'mysql2';
 
 export async function POST(req: NextRequest) {
+  const rateLimitResult = authRateLimit()(req);
+  if (rateLimitResult) {
+    return rateLimitResult;
+  }
+
   try {
     const body = await req.json();
     
@@ -31,7 +38,7 @@ export async function POST(req: NextRequest) {
       [email]
     );
 
-    if (users.length === 0) {
+    if (users.length === 0 || !users[0].activo) {
       return NextResponse.json(
         { error: 'Credenciales inválidas' },
         { status: 401 }
@@ -39,14 +46,7 @@ export async function POST(req: NextRequest) {
     }
 
     const user = users[0];
-
-    if (!user.activo) {
-      return NextResponse.json(
-        { error: 'Tu cuenta ha sido desactivada' },
-        { status: 403 }
-      );
-    }
-
+    
     const isValidPassword = await comparePassword(password, user.password_hash);
     if (!isValidPassword) {
       return NextResponse.json(
@@ -63,17 +63,20 @@ export async function POST(req: NextRequest) {
 
     await updateLastLogin(user.id_usuario);
 
-    return NextResponse.json({
+    const userData = {
+      id: user.id_usuario,
+      email: user.email,
+      nombre: user.nombre,
+      telefono: user.telefono,
+      rol: user.rol
+    };
+
+    const response = NextResponse.json({
       message: 'Login exitoso',
-      user: {
-        id: user.id_usuario,
-        email: user.email,
-        nombre: user.nombre,
-        telefono: user.telefono,
-        rol: user.rol
-      },
-      ...tokens
+      user: userData
     });
+
+    return setAuthCookies(response, tokens.accessToken, tokens.refreshToken, userData);
 
   } catch (error) {
     console.error('Error en login:', error);

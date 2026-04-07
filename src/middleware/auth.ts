@@ -5,18 +5,30 @@ export interface AuthenticatedRequest extends NextRequest {
   user?: JWTPayload;
 }
 
+function getTokenFromRequest(req: NextRequest): string | null {
+  const authHeader = req.headers.get('authorization');
+  if (authHeader?.startsWith('Bearer ')) {
+    return authHeader.substring(7);
+  }
+  
+  const cookieToken = req.cookies.get('access_token')?.value;
+  if (cookieToken) {
+    return cookieToken;
+  }
+  
+  return null;
+}
+
 export function withAuth(handler: (req: AuthenticatedRequest) => Promise<NextResponse>) {
   return async (req: NextRequest) => {
-    const authHeader = req.headers.get('authorization');
+    const token = getTokenFromRequest(req);
     
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    if (!token) {
       return NextResponse.json(
         { error: 'Token de autorización requerido' },
         { status: 401 }
       );
     }
-
-    const token = authHeader.substring(7);
 
     try {
       const user = verifyAccessToken(token);

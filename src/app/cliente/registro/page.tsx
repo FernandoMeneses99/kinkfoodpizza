@@ -59,7 +59,7 @@ export default function RegistroPage() {
         return;
       }
 
-      login(data.user, data.accessToken, data.refreshToken);
+      login(data.user);
       router.push("/cliente/menu");
     } catch {
       setError("Error de conexión");

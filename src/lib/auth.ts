@@ -4,9 +4,12 @@ import { v4 as uuidv4 } from 'uuid';
 import { query } from './db';
 import { RowDataPacket } from 'mysql2';
 
-const JWT_SECRET = process.env.JWT_SECRET || 'krokori-super-secret-key-2024';
-const JWT_EXPIRES_IN = '7d';
-const REFRESH_TOKEN_EXPIRES = 7 * 24 * 60 * 60 * 1000; // 7 días en ms
+const JWT_SECRET = process.env.JWT_SECRET!;
+if (!process.env.JWT_SECRET) {
+  throw new Error('JWT_SECRET environment variable is required');
+}
+
+const REFRESH_TOKEN_EXPIRES = 7 * 24 * 60 * 60 * 1000;
 
 export interface JWTPayload {
   id: number;
@@ -28,8 +31,7 @@ export async function comparePassword(password: string, hash: string): Promise<b
 }
 
 export function generateAccessToken(payload: JWTPayload): string {
-  const options: SignOptions = { expiresIn: JWT_EXPIRES_IN };
-  return jwt.sign(payload, JWT_SECRET, options);
+  return jwt.sign(payload, JWT_SECRET, { expiresIn: '7d' });
 }
 
 export function generateRefreshToken(): string {

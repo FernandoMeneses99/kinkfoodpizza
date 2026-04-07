@@ -37,7 +37,7 @@ function LoginForm() {
         return;
       }
 
-      login(data.user, data.accessToken, data.refreshToken);
+      login(data.user);
       router.push(redirect);
     } catch {
       setError("Error de conexión");

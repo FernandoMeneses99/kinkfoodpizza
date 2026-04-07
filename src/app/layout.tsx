@@ -3,7 +3,10 @@ import { Roboto, Raleway, Poppins } from "next/font/google";
 import "./globals.css";
 import { AuthProvider } from "@/components/providers/AuthProvider";
 import { CookieProvider } from "@/components/providers/CookieProvider";
+import { ThemeProvider } from "@/components/providers/ThemeProvider";
 import CookieBanner from "@/components/CookieBanner";
+import { WhatsAppButton } from "@/components/WhatsAppButton";
+import { restaurantSchema, organizationSchema } from "@/lib/schema";
 
 const roboto = Roboto({
   variable: "--font-roboto",
@@ -84,14 +87,25 @@ export default function RootLayout({
       <head>
         <link rel="icon" href="/favicon.ico" sizes="any" />
         <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(restaurantSchema) }}
+        />
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(organizationSchema) }}
+        />
       </head>
       <body className={`${roboto.variable} ${raleway.variable} ${poppins.variable}`} suppressHydrationWarning>
-        <CookieProvider>
-          <AuthProvider>
-            {children}
-            <CookieBanner />
-          </AuthProvider>
-        </CookieProvider>
+        <ThemeProvider>
+          <CookieProvider>
+            <AuthProvider>
+              {children}
+              <CookieBanner />
+              <WhatsAppButton />
+            </AuthProvider>
+          </CookieProvider>
+        </ThemeProvider>
       </body>
     </html>
   );

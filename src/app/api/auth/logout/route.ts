@@ -1,29 +1,25 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { verifyAccessToken } from '@/lib/auth';
+import { verifyAccessToken, invalidateRefreshTokens } from '@/lib/auth';
+import { getAccessToken, clearAuthCookies } from '@/lib/cookies';
 
 export async function POST(req: NextRequest) {
   try {
-    const { refreshToken } = await req.json();
-
-    if (!refreshToken) {
-      return NextResponse.json(
-        { error: 'Refresh token requerido' },
-        { status: 400 }
-      );
+    const accessToken = getAccessToken(req);
+    
+    if (accessToken) {
+      try {
+        const payload = verifyAccessToken(accessToken);
+        await invalidateRefreshTokens(payload.id);
+      } catch {
+        // Token inválido pero continuamos con logout
+      }
     }
 
-    try {
-      verifyAccessToken(refreshToken);
-    } catch {
-      return NextResponse.json(
-        { error: 'Token inválido' },
-        { status: 400 }
-      );
-    }
-
-    return NextResponse.json({
+    const response = NextResponse.json({
       message: 'Sesión cerrada exitosamente'
     });
+
+    return clearAuthCookies(response);
 
   } catch (error) {
     console.error('Error en logout:', error);

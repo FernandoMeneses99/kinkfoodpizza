@@ -2,9 +2,16 @@ import { NextRequest, NextResponse } from 'next/server';
 import { query } from '@/lib/db';
 import { hashPassword, createTokens } from '@/lib/auth';
 import { registerSchema } from '@/lib/validation';
+import { setAuthCookies } from '@/lib/cookies';
+import { authRateLimit } from '@/lib/rate-limit';
 import { RowDataPacket, ResultSetHeader } from 'mysql2';
 
 export async function POST(req: NextRequest) {
+  const rateLimitResult = authRateLimit()(req);
+  if (rateLimitResult) {
+    return rateLimitResult;
+  }
+
   try {
     const body = await req.json();
     
@@ -46,17 +53,20 @@ export async function POST(req: NextRequest) {
       rol: 'cliente'
     });
 
-    return NextResponse.json({
+    const userData = {
+      id: userId,
+      email,
+      nombre,
+      telefono,
+      rol: 'cliente'
+    };
+
+    const response = NextResponse.json({
       message: 'Usuario registrado exitosamente',
-      user: {
-        id: userId,
-        email,
-        nombre,
-        telefono,
-        rol: 'cliente'
-      },
-      ...tokens
+      user: userData
     }, { status: 201 });
+
+    return setAuthCookies(response, tokens.accessToken, tokens.refreshToken, userData);
 
   } catch (error) {
     console.error('Error en registro:', error);

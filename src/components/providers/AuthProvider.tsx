@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useContext, useState, useEffect, ReactNode } from "react";
+import { createContext, useContext, useState, useEffect, ReactNode, useCallback } from "react";
 import { useRouter } from "next/navigation";
 
 interface User {
@@ -14,8 +14,8 @@ interface User {
 interface AuthContextType {
   user: User | null;
   token: string | null;
-  login: (userData: User, accessToken: string, refreshToken: string) => void;
-  logout: () => void;
+  login: (userData: User) => void;
+  logout: () => Promise<void>;
   isLoading: boolean;
 }
 
@@ -23,7 +23,7 @@ const AuthContext = createContext<AuthContextType>({
   user: null,
   token: null,
   login: () => {},
-  logout: () => {},
+  logout: async () => {},
   isLoading: true,
 });
 
@@ -35,33 +35,45 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [isLoading, setIsLoading] = useState(true);
   const router = useRouter();
 
-  useEffect(() => {
-    const storedToken = localStorage.getItem("accessToken");
-    const storedUser = localStorage.getItem("user");
-    
-    if (storedToken && storedUser) {
-      setToken(storedToken);
-      const userData = JSON.parse(storedUser);
-      setUser(userData);
+  const fetchUserFromCookies = useCallback(async () => {
+    try {
+      const res = await fetch('/api/auth/me');
+      if (res.ok) {
+        const data = await res.json();
+        setUser(data.user);
+        setToken(data.token);
+      } else {
+        setUser(null);
+        setToken(null);
+      }
+    } catch {
+      setUser(null);
+      setToken(null);
+    } finally {
+      setIsLoading(false);
     }
-    setIsLoading(false);
   }, []);
 
-  const login = (userData: User, accessToken: string, refreshToken: string) => {
+  useEffect(() => {
+    fetchUserFromCookies();
+  }, [fetchUserFromCookies]);
+
+  const login = (userData: User) => {
     setUser(userData);
-    setToken(accessToken);
-    localStorage.setItem("accessToken", accessToken);
-    localStorage.setItem("refreshToken", refreshToken);
-    localStorage.setItem("user", JSON.stringify(userData));
+    setToken("cookie-auth");
+    fetchUserFromCookies();
   };
 
-  const logout = () => {
-    setUser(null);
-    setToken(null);
-    localStorage.removeItem("accessToken");
-    localStorage.removeItem("refreshToken");
-    localStorage.removeItem("user");
-    router.push("/");
+  const logout = async () => {
+    try {
+      await fetch("/api/auth/logout", { method: "POST" });
+    } catch (error) {
+      console.error("Error en logout:", error);
+    } finally {
+      setUser(null);
+      setToken(null);
+      router.push("/");
+    }
   };
 
   return (

@@ -5,6 +5,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { Phone, MapPin, Menu, X, User, Settings, ShoppingCart } from "lucide-react";
 import { SocialIcon } from "./SocialIcon";
+import { ThemeToggle } from "./ThemeToggle";
 import { useAuth } from "@/components/providers/AuthProvider";
 
 interface Configuracion {
@@ -151,6 +152,7 @@ export default function Navbar() {
                 <a href="#" className="p-1.5 hover:bg-white/10 rounded-full transition-colors">
                   <SocialIcon platform="instagram" className="w-4 h-4" />
                 </a>
+                <ThemeToggle />
               </div>
             </div>
           </div>
