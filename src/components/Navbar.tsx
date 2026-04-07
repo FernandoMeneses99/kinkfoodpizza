@@ -172,6 +172,7 @@ export default function Navbar() {
                   src="/images/logo-198x66.png"
                   alt="Krokori Logo"
                   fill
+                  sizes="(max-width: 1024px) 56px, 64px"
                   className="object-contain p-1"
                   priority
                 />

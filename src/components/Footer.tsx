@@ -79,7 +79,7 @@ export default function Footer() {
             {/* Logo & Phone */}
             <div className="flex flex-col md:flex-row items-center gap-6">
               <div className="relative" style={{ width: 100, height: 33 }}>
-                <Image src="/images/logo-198x662.png" alt="Krokori" fill className="object-contain" unoptimized />
+                <Image src="/images/logo-198x662.png" alt="Krokori" fill sizes="100px" className="object-contain" unoptimized />
               </div>
               <div className="flex items-center gap-2">
                 <Phone className="w-5 h-5 text-[#dc2626]" />
